@@ -68,8 +68,10 @@ int main(int argc, char* argv[])
 
   Ipv4AddressHelper addr;
   addr.SetBase("192.168.7.0", "255.255.255.0");
-  addr.Assign(stations);
-  addr.Assign(aps);
+
+  Ipv4InterfaceContainer stationInterfaces, apInterface;
+  stationInterfaces = addr.Assign(stations);
+  apInterface = addr.Assign(aps);
 
   //We get ready to define the mobility of the nodes, since this is a wifi network
   MobilityHelper mobility;
@@ -91,9 +93,23 @@ int main(int argc, char* argv[])
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(wifiApNode);
 
+
+
+  UdpEchoServerHelper echoServer(2500);
+
+  ApplicationContainer serverApps = echoServer.Install(wifiNodes.Get(3));
+
+  UdpEchoClientHelper echoClient(stationInterfaces.GetAddress(3), 2500);
+
+  ApplicationContainer clientApps = echoClient.Install(wifiNodes.Get(2));
+  clientApps.Start(Seconds(2.0));
+  clientApps.Stop(Seconds(10.0));
+
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
   Simulator::Stop(Seconds(10.0));
+
+  phy.EnablePcapAll("Home Network");
 
   Simulator::Run();
   Simulator::Destroy();
